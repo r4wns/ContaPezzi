@@ -1,0 +1,20 @@
+int sensor_1 = A0;
+int ledGreen = 2;
+int ledRed = 3;
+int threshold = 200;
+
+void setup() {
+  pinMode(ledGreen, OUTPUT);
+  pinMode(ledRed, OUTPUT);
+  Serial.begin(9600);
+}
+
+void loop() {
+  int value = analogRead(sensor_1);
+  Serial.println(value);
+
+  digitalWrite(ledGreen, value > threshold ? HIGH : LOW);
+  digitalWrite(ledRed, value > threshold ? LOW : HIGH);
+
+  delay(100);
+}
