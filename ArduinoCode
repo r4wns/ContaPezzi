@@ -1,7 +1,24 @@
 int sensor_1 = A0;
+int sensor_2 = A1;
+
 int ledGreen = 2;
 int ledRed = 3;
+
 int threshold = 200;
+int endThreshold = 50;
+
+// Stato rilevamento
+bool detecting = false;
+
+unsigned long startTime = 0;
+unsigned long duration = 0;
+
+unsigned long firstDetectionS2 = 0;
+unsigned long lastDetectionS2 = 0;
+
+bool sensor2Triggered = false;
+
+char result = '-'; // mantiene ultima lettera
 
 void setup() {
   pinMode(ledGreen, OUTPUT);
@@ -10,11 +27,60 @@ void setup() {
 }
 
 void loop() {
-  int value = analogRead(sensor_1);
-  Serial.println(value);
+  int value1 = analogRead(sensor_1);
+  int value2 = analogRead(sensor_2);
 
-  digitalWrite(ledGreen, value > threshold ? HIGH : LOW);
-  digitalWrite(ledRed, value > threshold ? LOW : HIGH);
+  bool baseDetected = value1 > threshold;
+  bool baseEnded = value1 < endThreshold;
+  bool objectDetected = value2 > threshold;
 
-  delay(100);
+  // LED
+  digitalWrite(ledGreen, baseDetected ? HIGH : LOW);
+  digitalWrite(ledRed, baseDetected ? LOW : HIGH);
+
+  // INIZIO rilevamento
+  if (baseDetected && !detecting) {
+    detecting = true;
+    startTime = millis();
+
+    sensor2Triggered = false;
+    firstDetectionS2 = 0;
+    lastDetectionS2 = 0;
+  }
+
+  // DURANTE rilevamento
+  if (detecting) {
+    if (objectDetected) {
+      if (!sensor2Triggered) {
+        firstDetectionS2 = millis();
+      }
+      sensor2Triggered = true;
+      lastDetectionS2 = millis();
+    }
+  }
+
+  // FINE rilevamento
+  if (detecting && baseEnded) {
+    detecting = false;
+    duration = millis() - startTime;
+
+    // CLASSIFICAZIONE
+    if (!sensor2Triggered) {
+      result = 'A';
+    } else {
+      unsigned long startOffset = firstDetectionS2 - startTime;
+      unsigned long endOffset = duration - (lastDetectionS2 - startTime);
+
+      // se rileva vicino inizio o fine → C
+      if (startOffset < 200 || endOffset < 200) {
+        result = 'C';
+      } else {
+        result = 'B';
+      }
+    }
+
+    Serial.println(result);
+  }
+
+  delay(50);
 }
